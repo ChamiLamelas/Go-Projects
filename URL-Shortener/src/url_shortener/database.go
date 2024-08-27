@@ -54,7 +54,8 @@ WHERE Automatic
 
 /*
 This is a query template for inserting a new row (representing an
-alias <-> URL mapping) into our table.
+alias <-> URL mapping) into our table. The # expansions is not
+templated as it always starts at 0 upon insert.
 
 Note: Go's sql package allows for query templates where placeholders
 are specified by a ?. Then, when query is used (either in a Query()
@@ -67,7 +68,7 @@ put in newlines manually while still preserving code readability.
 */
 const QUERY_MAKE_MAPPING_TEMPLATE = `
 INSERT INTO aliases (URL, Alias, Expansions, Automatic) 
-VALUES (?, ?, ?, ?)
+VALUES (?, ?, 0, ?)
 `
 
 // Query to get the alias associated with a URL

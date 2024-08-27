@@ -30,6 +30,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -51,8 +52,23 @@ const INTERNAL_ERROR_MESSAGE = "Unexpected Internal Server Error"
 
 // Represents our server type
 type Server struct {
-	db        *sql.DB
+	// Connection to SQLite database that holds mapping/analytics table
+	db *sql.DB
+
+	/*
+		The first alias we try when assigning an alias automatically.
+		Note, as shown in ShortenAutomatic( ) that multiple aliases
+		may have to be tried.
+	*/
 	nextAlias int
+
+	/*
+		Mutex lock that ensures synchronized (consistent) updates to
+		nextAlias in the event that multiple requests come in at the
+		same time to automatically assign an alias. For more, see
+		ShortenAutomatic( ).
+	*/
+	nextAliasLock sync.Mutex
 }
 
 ////////////////////////// PRIVATE FUNCTIONS ///////////////////////
@@ -261,23 +277,96 @@ Returns:
 	error is nil, it is assumed the returned alias is not empty.
 */
 func ShortenAutomatic(s *Server, request *ShortenRequest) (string, string, error) {
+
+	// Uncomment for testing concurrency robustness
+	// log.Printf("Beginning to service shorten request for %s", request.Url)
+	// defer log.Printf("Finished servicing shorten request for %s", request.Url)
+
+	/*
+		It is possible that two shorten/ requests come in back to back that
+		require automatic alias assignment. As a result of Go's route handling
+		this will spawn two concurrently running goroutines.
+
+		For the purpose of illustrating the lock motivation, let us break
+		this down to two goroutines/threads that are doing an increment
+		operation. Let TMP be the result of the operation s.nextAlias + 1
+		that occurs on the right hand side of the expanded +=. Let A be
+		our counter (nextAlias). Let A start at 0.
+
+		Here is a possible order of execution subject to context switching.
+
+				goroutine #1					goroutine #2
+
+		1.		TMP = A + 1
+		2.										TMP = A + 1
+		3.										A = TMP
+		4.		A = TMP
+
+		As a result, both routines set A to 1, even though two increments
+		are done. Therefore, this is a race condition and the increments
+		need to be protected by a Mutex lock.
+
+		The code below is an expansion of the above scenario that involves
+		potentially multiple updates to nextAlias. Hence, the whole function
+		is locked off as a critical section.
+	*/
+	s.nextAliasLock.Lock()
+	defer s.nextAliasLock.Unlock()
+
 	var alias string
+
+	// Note for { } is proper Go syntax for a while (true) { }
 	for {
+		// Convert current next alias to string and try to insert
 		alias = strconv.Itoa(s.nextAlias)
-		_, err := s.db.Exec(QUERY_MAKE_MAPPING_TEMPLATE, request.Url, alias, 0, true)
+		_, err := s.db.Exec(QUERY_MAKE_MAPPING_TEMPLATE, request.Url, alias, true)
 		if err == nil {
+			// Insertion successful -- return after we increase nextAlias
 			s.nextAlias += 1
 			break
 		} else if err.Error() == DUPLICATE_URL_VIOLATION {
+			// Insertion failed because the URL already has an alias
+
+			/*
+				Get the alias for the URL that we are trying to make
+				a mapping for. This is so that a user would know how
+				to visit their desired URL via the URL-Shortener
+				application.
+
+				Note, this query can fail so we overwrite err after
+				saving the original duplicate error for logging
+				in Shorten( ).
+			*/
 			duplicate_url_err := err
 			alias, err = GetAliasByURL(s, request.Url)
+
+			/*
+				Don't expect this query to fail (because insertion failed
+				due to duplicated URLs)
+			*/
 			if err != nil {
 				return "", INTERNAL_ERROR_MESSAGE, err
 			}
 			return "", fmt.Sprintf("URL already has an alias %s.", alias), duplicate_url_err
 		} else if err.Error() == DUPLICATE_ALIAS_VIOLATION {
+			// Insertion failed because the alias is in use for another URL
+
+			/*
+				Unlike in the custom alias case, if insertion fails due to duplicate
+				alias we can't just give up (as we are supposed to be assigning an
+				alias automatically).
+
+				First off, the reason we even check for this is because the user could
+				make an alias be an automatic alias. For example, suppose now shorten/
+				requests have been made and the user shortens with a custom alias of "0".
+				This would conflict as this is the first nextAlias value.
+
+				Therefore, we keep incrementing nextAlias until we find one that does
+				not have a conflict and use that one as the automatic alias.
+			*/
 			s.nextAlias += 1
 		} else {
+			// Insertion failed for unexpected reason
 			return "", INTERNAL_ERROR_MESSAGE, err
 		}
 	}
@@ -304,19 +393,42 @@ Returns:
 	error is nil, it is assumed the returned alias is not empty.
 */
 func ShortenCustom(s *Server, request *ShortenRequest) (string, string, error) {
-	_, err := s.db.Exec(QUERY_MAKE_MAPPING_TEMPLATE, request.Url, request.Alias, 0, false)
+	// Insert custom mapping into database
+	_, err := s.db.Exec(QUERY_MAKE_MAPPING_TEMPLATE, request.Url, request.Alias, false)
+
 	if err == nil {
+		// Insertion successful -- return immediately
 		return request.Alias, "", nil
 	} else if err.Error() == DUPLICATE_URL_VIOLATION {
+		// Insertion failed because the URL already has an alias
+
+		/*
+			Get the alias for the URL that we are trying to make
+			a mapping for. This is so that a user would know how
+			to visit their desired URL via the URL-Shortener
+			application.
+
+			Note, this query can fail so we overwrite err after
+			saving the original duplicate error for logging
+			in Shorten( ).
+		*/
 		duplicate_url_err := err
 		alias, err := GetAliasByURL(s, request.Url)
+
+		/*
+			Don't expect this query to fail (because insertion failed
+			due to duplicated URLs)
+		*/
 		if err != nil {
 			return "", INTERNAL_ERROR_MESSAGE, err
 		}
+
 		return "", fmt.Sprintf("URL already has an alias %s.", alias), duplicate_url_err
 	} else if err.Error() == DUPLICATE_ALIAS_VIOLATION {
+		// Insertion failed because alias is being used for another URL
 		return "", "Alias is already in use", err
 	} else {
+		// Insertion failed for unexpected reason
 		return "", INTERNAL_ERROR_MESSAGE, err
 	}
 }
@@ -333,11 +445,13 @@ Parameters:
 	w: Where we write response for user
 */
 func Shorten(s *Server, w http.ResponseWriter, r *http.Request) {
+	// Only POST requests are allowed on the shorten/ endpoint
 	if r.Method != http.MethodPost {
 		ReportInvalidMethodError(w, r.Method)
 		return
 	}
 
+	// Decode provided JSON string into appropriate request type
 	var request ShortenRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -345,15 +459,24 @@ func Shorten(s *Server, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/*
+		If decoding (as specified in api.go) results in an empty
+		alias we must automatically assign an alias.
+	*/
 	var alias string
 	var err_msg string
-
 	if request.Alias == "" {
 		alias, err_msg, err = ShortenAutomatic(s, &request)
 	} else {
 		alias, err_msg, err = ShortenCustom(s, &request)
 	}
 
+	/*
+		If an error occurred during shortening, we report it. Any
+		internal errors always have the INTERNAL_ERROR_MESSAGE
+		message so that's how we determine what type of error
+		to report back to the user.
+	*/
 	if err != nil {
 		if err_msg == INTERNAL_ERROR_MESSAGE {
 			ReportUnexpectedInternalServerError(w, err)
@@ -381,17 +504,30 @@ Parameters:
 	w: Where we write response for user
 */
 func Expand(s *Server, w http.ResponseWriter, r *http.Request) {
+	// Only GET requests are allowed on the expand/ endpoint
 	if r.Method != http.MethodGet {
 		ReportInvalidMethodError(w, r.Method)
 		return
 	}
 
+	/*
+		Strip off the analytics/ endpoint from URL where request
+		was made at to get the alias that was provided in the
+		request.
+	*/
 	alias := strings.TrimPrefix(r.URL.Path, EXPAND_ENDPOINT)
 
+	// Get the URL for the provided alias
 	row := s.db.QueryRow(QUERY_GET_URL_BY_ALIAS_TEMPLATE, alias)
 	var url string
 	err := row.Scan(&url)
 
+	/*
+		sql.ErrNoRows is the error provided by Scan in the event that QueryRow( )
+		returned nothing (i.e. there was no row with provided alias)
+
+		We don't expect any other errors
+	*/
 	if err == sql.ErrNoRows {
 		ReportBadRequestError(w, "No mapping exists for alias", fmt.Sprintf("Cannot expand %s, not mapped", alias))
 		return
@@ -400,6 +536,42 @@ func Expand(s *Server, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/*
+		Increase the number of expansions done on alias. Note because UPDATE internally
+		does an increment, there's no need to provide the current number of expansions.
+
+		In addition, one might ask why is this not done in a locked/transaction state.
+		Suppose a user makes an expand/ request quickly followed by an analytics/
+		request. As a result, two goroutines start running conccurently.
+
+		Suppose the following order of operations occur. In the left column,
+		SQL SELECT represents the QueryRow( ) call done above (which does
+		the expansion) and SQL UPDATE represents the Exec( ) call done below
+		(which does the expansion count update). In the right column, SQL
+		SELECT represents the QueryRow( ) call done in the function below
+		which gets the # of expansions.
+
+				expand/ goroutine				analytics/ goroutine
+
+		1.		SQL SELECT
+		2.										SQL SELECT
+		3.		SQL UPDATE
+
+		First off, SQL operations in threads (which presumably includes goroutines)
+		are default synchronized (and thread safe) as noted here:
+		https://www.sqlite.org/draft/faq.html#q6. Therefore, each individual
+		SQL operation in the columns above will execute properly without
+		inconsitencies.
+
+		Second, it is true that the analytics/ goroutine would report that
+		the alias has not been expanded yet even though the expand/ SELECT
+		happened first. However, we deem this is okay. This is because the
+		alias has not truly been expanded in practice. This is because the
+		expanded alias has not yet been returned to the user which would
+		only happen after the UPDATE in the expand/ goroutine. We therefore
+		do not believe that maintaining this particular consistency is
+		worth the overhead of maintaining a locked state.
+	*/
 	_, err = s.db.Exec(QUERY_UPDATE_ANALYTICS_BY_ALIAS_TEMPLATE, alias)
 	if err != nil {
 		ReportUnexpectedInternalServerError(w, err)
@@ -424,19 +596,31 @@ Parameters:
 	w: Where we write response for user
 */
 func Analytics(s *Server, w http.ResponseWriter, r *http.Request) {
+	// Only GET requests are allowed on the analytics/ endpoint
 	if r.Method != http.MethodGet {
 		ReportInvalidMethodError(w, r.Method)
 		return
 	}
 
+	/*
+		Strip off the analytics/ endpoint from URL where request
+		was made at to get the alias that was provided in the
+		request.
+	*/
 	alias := strings.TrimPrefix(r.URL.Path, ANALYTICS_ENDPOINT)
 
+	// Get the URL, # expansions for the provided alias
 	row := s.db.QueryRow(QUERY_GET_ANALYTICS_BY_ALIAS_TEMPLATE, alias)
-
 	var url string
 	var expansions int
 	err := row.Scan(&url, &expansions)
 
+	/*
+		sql.ErrNoRows is the error provided by Scan in the event that QueryRow( )
+		returned nothing (i.e. there was no row with provided alias)
+
+		We don't expect any other errors
+	*/
 	if err == sql.ErrNoRows {
 		ReportBadRequestError(w, "No mapping exists for alias", fmt.Sprintf("Cannot get analytics for %s, not mapped", alias))
 		return
@@ -498,6 +682,9 @@ func NewServer() *Server {
 		See here for more: https://stackoverflow.com/a/10866871
 	*/
 	server := new(Server)
+
+	// Default log granularity is seconds -- lowering to microseconds
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	err := InitializeDatabase(server)
 	if err != nil {
 		log.Println(err)
@@ -526,6 +713,10 @@ func (s *Server) Run() {
 		The nil parameter specifies we are using the default request
 		multiplexer. In particular, it will try to match the endpoint
 		to the routes that have been registered in SetupRoutes( ).
+
+		It is important to note that when a request comes in, it will
+		result in a goroutine spawning where request/route handling is
+		done.
 
 		Also, this function always returns an error even when Ctrl+C'd
 		by the user. Regardless, when this function terminates, we have

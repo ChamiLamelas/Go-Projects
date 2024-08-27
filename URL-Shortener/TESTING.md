@@ -4,7 +4,7 @@
 
 This file outlines the test cases in this folder. The test cases were used in testing the implementation. Most of these test cases were derived from [DESIGN.md](./DESIGN.md).
 
-The tests generally work by sending HTTP requests with `curl` to the server and collecting the output into `.out` files. The output is then diffed with a saved reference output file. 
+The tests generally work by sending HTTP requests with `curl` to the server and collecting the output (HTTP response code, response body) into `.out` files. The output is then diffed with a saved reference output file. 
 
 > Note: throughout this file, we assume that the current working directory is `tests`.
 
@@ -188,3 +188,30 @@ The tests generally work by sending HTTP requests with `curl` to the server and 
 7. Run `bash boot.sh` in the first terminal.
 8. Run `bash test20c.sh` in the second terminal.
 9. `Ctrl + C` the server.
+
+### Test 21
+
+**Description:** check if back to back `shorten/` requests are properly handled. This is meant to test for race conditions in how aliases are automatically assigned. This test is handled a bit differently, and it involves checking things manually. 
+
+1. Uncomment the two logging statements at the top of `ShortenAutomatic` in `server.go`.
+2. Run `bash fresh_boot.sh` in one terminal.
+3. Run `bash test21.sh` in a second terminal.
+4. `Ctrl + C` the server.
+5. First, check the log statements in the server terminal. You will see that shorten requests are being handled concurrently. For example, it may look something like this: 
+
+    ```text
+    2024/08/27 12:34:50.319581 Beginning to service shorten request for https://www.web2.com
+    2024/08/27 12:34:50.319581 Beginning to service shorten request for https://www.web4.com
+    2024/08/27 12:34:50.319581 Beginning to service shorten request for https://www.web1.com
+    2024/08/27 12:34:50.326429 Finished servicing shorten request for https://www.web2.com
+    2024/08/27 12:34:50.332235 Finished servicing shorten request for https://www.web4.com
+    2024/08/27 12:34:50.334306 Beginning to service shorten request for https://www.web3.com
+    2024/08/27 12:34:50.334306 Beginning to service shorten request for https://www.web5.com
+    2024/08/27 12:34:50.338010 Finished servicing shorten request for https://www.web1.com
+    2024/08/27 12:34:50.342716 Finished servicing shorten request for https://www.web3.com
+    2024/08/27 12:34:50.348275 Finished servicing shorten request for https://www.web5.com
+    ```
+
+    Then, check each of the `.out` files produced for this test. The alias should be unique for each going from 0 to 4. The order of assignment should match the "finished" prints in the server print log. 
+
+    For example, with the output above, the web2 gets alias 0, web4 gets alias 1, web1 gets alias 2, web3 gets alias 3, and web5 gets alias 4.

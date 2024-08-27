@@ -25,7 +25,8 @@ const ANALYTICS_ENDPOINT = "/urlshortener/analytics/"
 
 /*
 Specifies the JSON structure for body of an HTTP request to
-shorten/ endpoint.
+shorten/ endpoint. A user must provide a URL to shorten and
+optionally, an alias for shortening the URL to.
 
 Note about type definitions: the strings in backticks (`)
 are known as a struct tag. A struct tag is used to associate
@@ -53,7 +54,8 @@ type ShortenRequest struct {
 
 /*
 Specifies the JSON structure for body of an HTTP response from
-shorten/ endpoint.
+shorten/ endpoint. A user will receive the URL <-> alias mapping
+that was created.
 */
 type ShortenResponse struct {
 	Url   string `json:"url"`
@@ -62,7 +64,8 @@ type ShortenResponse struct {
 
 /*
 Specifies the JSON structure for body of an HTTP response from
-expand/ endpoint.
+expand/ endpoint. A user will receive the URL <-> alias mapping
+that corresponds to the expansion.
 */
 type ExpandResponse struct {
 	Url   string `json:"url"`
@@ -71,7 +74,8 @@ type ExpandResponse struct {
 
 /*
 Specifies the JSON structure for body of an HTTP response from
-analytics/ endpoint.
+analytics/ endpoint. A user will receive the URL <-> alias
+mapping and the number of times it was expanded.
 */
 type AnalyticsResponse struct {
 	Url        string `json:"url"`
