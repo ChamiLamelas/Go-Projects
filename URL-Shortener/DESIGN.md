@@ -155,7 +155,7 @@ The database will have one table called `aliases`. The table will have the follo
 |Column|Type|Attributes|Description|Notes|
 |-|-|-|-|-|
 |`URL`|`TEXT`|Unique, non-null|Represents a long (real) URL.|None|
-|`Alias`|`VARCHAR(12)`|Primary key|Represents an alias.|This is chosen as the primary key because if one were to split off analytics into another table, you would `JOIN` on this key.|
+|`Alias`|`TEXT`|Primary key|Represents an alias.|This is chosen as the primary key for two reasons. First, if one were to split off analytics into another table, you would `JOIN` on this key. Second, it is assumed more queries are done based on alias than URL. For example, expansions and analytics requests will lbe done as queries on alias.|
 |`Expansions`|`INT`|None|Number of times an alias has been expanded to its URL.|None|
 |`Automatic`|`BOOL`|None|Whether or not alias was automatically generated.|This is used to determine the maximum alias for initializing the counter upon server reboot.|
 

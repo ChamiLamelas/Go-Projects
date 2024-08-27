@@ -10,7 +10,7 @@ At a high level, it is implemented via a (local) HTTP server via a simple JSON R
 
 It offers the following features: 
 
-1. A user can provide a URL to be shortened to an alias. By leaving the alias blank, an alias is automatically assigned. 
+1. A user can provide a URL to be shortened to an alias. By leaving the alias blank, an alias is automatically assigned. Aliases are assigned sequentially starting from 0.
 2. A user can expand an alias to a URL. 
 3. A user can see how many times a URL has been expanded.
 
@@ -66,6 +66,9 @@ The easiest way to use the server is to make requests with curl. On Windows, use
         "alias":"google"
     }
     ```
+
+    > Note: a custom alias can be anything (including automatically assigned aliases) besides the empty string. This is because if the empty string is provided, the
+    expansion URL would be our expansion endpoint (`/urlshortener/expand/`). Our application will assume this is a mistake an automatically assign an alias as above.
 
 3. Expand an alias: 
 
