@@ -46,6 +46,10 @@ The easiest way to use the server is to make requests with curl. On Windows, use
     The response looks like: 
 
     ```json
+    {
+        "url":"https://www.google.com",
+        "alias":"0"
+    }
     ```
 
 2. Shorten a URL to a custom alias: 
@@ -57,6 +61,10 @@ The easiest way to use the server is to make requests with curl. On Windows, use
     The response looks like: 
 
     ```json
+    {
+        "url":"https://www.google.com",
+        "alias":"google"
+    }
     ```
 
 3. Expand an alias: 
@@ -68,6 +76,10 @@ The easiest way to use the server is to make requests with curl. On Windows, use
     The response looks like: 
 
     ```json
+    {
+        "url":"https://www.google.com",
+        "alias":"google"
+    }
     ```
 
 4. Get analytics on an alias: 
@@ -79,6 +91,11 @@ The easiest way to use the server is to make requests with curl. On Windows, use
     The response looks like: 
 
     ```json
+    {
+        "url":"https://www.google.com",
+        "alias":"google",
+        "expansions":1
+    }
     ```
 
 ## Platform

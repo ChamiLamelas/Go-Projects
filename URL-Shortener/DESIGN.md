@@ -93,8 +93,7 @@ Response formats:
     ```json
     {
         "url": "https://www.google.com/",
-        "alias": "custom",
-        "shortened": true
+        "alias": "custom"
     }
     ```
 
@@ -137,7 +136,7 @@ Response formats:
     {
         "url": "https://www.google.com/",
         "alias": "123",
-        "resolutions": 100
+        "expansions": 100
     }
     ```
 
