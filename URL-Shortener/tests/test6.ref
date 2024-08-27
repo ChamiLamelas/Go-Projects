@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 26 Aug 2024 22:18:57 GMT
+Content-Length: 56
+
+{"url":"https://www.google.com","alias":"000000000000"}
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 26 Aug 2024 22:18:58 GMT
+Content-Length: 57
+
+{"url":"https://www.nytimes.com","alias":"000000000001"}

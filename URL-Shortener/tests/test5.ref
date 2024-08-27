@@ -1,0 +1,18 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 26 Aug 2024 22:17:19 GMT
+Content-Length: 56
+
+{"url":"https://www.google.com","alias":"000000000000"}
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 26 Aug 2024 22:17:19 GMT
+Content-Length: 56
+
+{"url":"https://www.google.com","alias":"000000000000"}
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 26 Aug 2024 22:17:19 GMT
+Content-Length: 71
+
+{"url":"https://www.google.com","alias":"000000000000","expansions":1}
