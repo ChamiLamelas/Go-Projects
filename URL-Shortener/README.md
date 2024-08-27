@@ -31,7 +31,7 @@ See [DESIGN.md](./DESIGN.md) for my full design.
 2. Run `go run .`
 3. Run `Ctrl + C` to stop the server. 
 
-    > Note you will see `exit status 0xc000013a` which is expected. This just means the program was aborted by a manual `Ctrl + C`.
+    > Note you will see `exit status 0xc000013a` (Windows) or `^Csignal: interrupt` (Linux) which is expected. This just means the program was aborted by a manual `Ctrl + C`.
 
 ## Using the Server 
 
@@ -101,9 +101,13 @@ The easiest way to use the server is to make requests with curl. On Windows, use
     }
     ```
 
-## Platform
+## Platforms
 
-This was implemented and tested on Windows 10 using `go version go1.23.0 windows/amd64` and [Cygwin](https://www.cygwin.com/). For more details on testing, see [TESTING.md](./TESTING.md)
+This was implemented on Windows 10 using `go version go1.23.0 windows/amd64` and [Cygwin](https://www.cygwin.com/). 
+
+It was tested on the above Windows platform as well as on Ubuntu 22.04.4 LTS using `go version go1.23.0 linux/amd64`.
+
+For more details on testing, see [TESTING.md](./TESTING.md)
 
 ## Acknowledgements 
 
