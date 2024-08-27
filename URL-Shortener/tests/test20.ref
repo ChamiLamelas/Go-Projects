@@ -1,0 +1,27 @@
+{"url":"https://www.web1.com","alias":"0"}
+
+Response code: 200
+{"url":"https://www.web1.com","alias":"0"}
+
+Response code: 200
+{"url":"https://www.web2.com","alias":"1"}
+
+Response code: 200
+{"url":"https://www.web1.com","alias":"0"}
+
+Response code: 200
+{"url":"https://www.web2.com","alias":"1"}
+
+Response code: 200
+{"url":"https://www.web3.com","alias":"2"}
+
+Response code: 200
+{"url":"https://www.web1.com","alias":"0","expansions":2}
+
+Response code: 200
+{"url":"https://www.web2.com","alias":"1","expansions":1}
+
+Response code: 200
+{"url":"https://www.web3.com","alias":"2","expansions":0}
+
+Response code: 200

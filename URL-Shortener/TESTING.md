@@ -17,8 +17,6 @@ The tests generally work by sending HTTP requests with `curl` to the server and 
 
 ## Test Cases
 
-Here are all of our test cases. Some tests were removed during development hence the jump from 10 to 15.
-
 ### Test 1
 
 **Description:** Simple behavior test where we check if an alias can be automatically assigned.
@@ -100,6 +98,38 @@ Here are all of our test cases. Some tests were removed during development hence
 
 1. Run `bash fresh_boot.sh` in one terminal.
 2. Run `bash test10.sh` in a second terminal.
+3. `Ctrl + C` the server.
+
+### Test 11
+
+**Description:** check if server properly rejects requests with wrong method for `shorten/` route.
+
+1. Run `bash fresh_boot.sh` in one terminal.
+2. Run `bash test11.sh` in a second terminal.
+3. `Ctrl + C` the server.
+
+### Test 12 
+
+**Description:** check if server properly rejects requests with wrong method for `expand/` route. 
+
+1. Run `bash fresh_boot.sh` in one terminal.
+2. Run `bash test12.sh` in a second terminal.
+3. `Ctrl + C` the server.
+
+### Test 13
+
+**Description:** check if server properly rejects requests with wrong method for `analytics/` route.
+
+1. Run `bash fresh_boot.sh` in one terminal.
+2. Run `bash test13.sh` in a second terminal.
+3. `Ctrl + C` the server.
+
+### Test 14
+
+**Description:** check if server properly rejects unknown routes.
+
+1. Run `bash fresh_boot.sh` in one terminal.
+2. Run `bash test14.sh` in a second terminal.
 3. `Ctrl + C` the server.
 
 ### Test 15

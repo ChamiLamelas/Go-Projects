@@ -1,6 +1,3 @@
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Mon, 26 Aug 2024 20:13:22 GMT
-Content-Length: 50
-
 {"url":"https://www.google.com","alias":"google"}
+
+Response code: 200

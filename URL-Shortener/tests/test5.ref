@@ -1,18 +1,9 @@
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Mon, 26 Aug 2024 22:17:19 GMT
-Content-Length: 56
+{"url":"https://www.google.com","alias":"0"}
 
-{"url":"https://www.google.com","alias":"000000000000"}
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Mon, 26 Aug 2024 22:17:19 GMT
-Content-Length: 56
+Response code: 200
+{"url":"https://www.google.com","alias":"0"}
 
-{"url":"https://www.google.com","alias":"000000000000"}
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Mon, 26 Aug 2024 22:17:19 GMT
-Content-Length: 71
+Response code: 200
+{"url":"https://www.google.com","alias":"0","expansions":1}
 
-{"url":"https://www.google.com","alias":"000000000000","expansions":1}
+Response code: 200

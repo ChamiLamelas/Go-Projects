@@ -1,12 +1,6 @@
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Mon, 26 Aug 2024 20:13:32 GMT
-Content-Length: 56
+{"url":"https://www.google.com","alias":"0"}
 
-{"url":"https://www.google.com","alias":"000000000000"}
-HTTP/1.1 200 OK
-Content-Type: application/json
-Date: Mon, 26 Aug 2024 20:13:33 GMT
-Content-Length: 56
+Response code: 200
+{"url":"https://www.google.com","alias":"0"}
 
-{"url":"https://www.google.com","alias":"000000000000"}
+Response code: 200

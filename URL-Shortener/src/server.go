@@ -71,17 +71,19 @@ func ShortenAutomatic(s *Server, request *ShortenRequest) (string, string, error
 	var alias string
 	for {
 		alias = strconv.Itoa(s.nextAlias)
-		s.nextAlias += 1
-
 		_, err := s.db.Exec(QUERY_MAKE_MAPPING_TEMPLATE, request.Url, alias, 0, true)
 		if err == nil {
+			s.nextAlias += 1
 			break
 		} else if err.Error() == DUPLICATE_URL_VIOLATION {
+			duplicate_url_err := err
 			alias, err = GetAliasByURL(s, request.Url)
 			if err != nil {
 				return "", INTERNAL_ERROR_MESSAGE, err
 			}
-			return "", fmt.Sprintf("URL already has an alias %s.", alias), err
+			return "", fmt.Sprintf("URL already has an alias %s.", alias), duplicate_url_err
+		} else if err.Error() == DUPLICATE_ALIAS_VIOLATION {
+			s.nextAlias += 1
 		} else {
 			return "", INTERNAL_ERROR_MESSAGE, err
 		}
@@ -94,11 +96,12 @@ func ShortenCustom(s *Server, request *ShortenRequest) (string, string, error) {
 	if err == nil {
 		return request.Alias, "", nil
 	} else if err.Error() == DUPLICATE_URL_VIOLATION {
+		duplicate_url_err := err
 		alias, err := GetAliasByURL(s, request.Url)
 		if err != nil {
 			return "", INTERNAL_ERROR_MESSAGE, err
 		}
-		return "", fmt.Sprintf("URL already has an alias %s.", alias), err
+		return "", fmt.Sprintf("URL already has an alias %s.", alias), duplicate_url_err
 	} else if err.Error() == DUPLICATE_ALIAS_VIOLATION {
 		return "", "Alias is already in use", err
 	} else {
@@ -159,8 +162,8 @@ func HandleInvalidMethodError(w http.ResponseWriter, method string) {
 }
 
 func HandleBadRequestError(w http.ResponseWriter, log_err_msg string, user_err_msg string) {
-	log.Println(log_err_msg)
-	http.Error(w, user_err_msg, http.StatusMethodNotAllowed)
+	log.Printf("Internal Error: %s, Error sent to User: %s", log_err_msg, user_err_msg)
+	http.Error(w, user_err_msg, http.StatusBadRequest)
 }
 
 func Expand(s *Server, w http.ResponseWriter, r *http.Request) {
@@ -176,7 +179,7 @@ func Expand(s *Server, w http.ResponseWriter, r *http.Request) {
 	err := row.Scan(&url)
 
 	if err == sql.ErrNoRows {
-		HandleBadRequestError(w, fmt.Sprintf("No mapping for %s\n", alias), "No mapping exists for alias")
+		HandleBadRequestError(w, "No mapping exists for alias", fmt.Sprintf("Cannot expand %s, not mapped", alias))
 		return
 	} else if err != nil {
 		HandleUnexpectedInternalServerError(w, err)
@@ -210,7 +213,7 @@ func Analytics(s *Server, w http.ResponseWriter, r *http.Request) {
 	err := row.Scan(&url, &expansions)
 
 	if err == sql.ErrNoRows {
-		HandleBadRequestError(w, fmt.Sprintf("No mapping for %s\n", alias), "No mapping exists for alias")
+		HandleBadRequestError(w, "No mapping exists for alias", fmt.Sprintf("Cannot get analytics for %s, not mapped", alias))
 		return
 	} else if err != nil {
 		HandleUnexpectedInternalServerError(w, err)
