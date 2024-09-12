@@ -2,7 +2,7 @@
 
 ## Overview 
 
-This file outlines the test cases in this folder. The test cases were used in testing the implementation. Most of these test cases were derived from [DESIGN.md](./DESIGN.md).
+This file outlines the test cases in the [tests folder](./tests/). The test cases were used in testing the implementation. Most of these test cases were derived from [DESIGN.md](./DESIGN.md).
 
 The tests generally work by sending HTTP requests with `curl` to the server and collecting the output (HTTP response code, response body) into `.out` files. The output is then diffed with a saved reference output file. 
 
