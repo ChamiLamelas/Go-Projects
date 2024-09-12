@@ -3,4 +3,5 @@
 Projects done while learning Go.
 
 Table of Contents
-- [URL-Shortener](./README.md): simplified version of a URL shortening service implemented via a local HTTP server and SQLite database.
+- [URL-Shortener](./URL-Shortener/README.md): simplified version of a URL shortening service implemented via a local HTTP server and SQLite database.
+- [ChatServer](./ChatServer/README.md): simplified version of a chat server implemented via a local HTTP server.
