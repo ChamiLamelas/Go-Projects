@@ -14,7 +14,7 @@ Build a simple chat server using Go's networking libraries. Clients can connect 
 
     > Note: this will not be user-initiated, but is done automatically 
 
-- Clients can join a specific chat room. If the room does not exist, then it must be created with that single user. 
+- Clients can join a specific chat room. If the room does not exist, then it must be created with that single user. If the client is already in another room, they are automatically removed from that room.
 - Clients can leave a chat room.
 - Clients can private message another client. 
 - Clients can send a message that is broadcast to the chat room.
@@ -118,6 +118,7 @@ Response format (success and failure):
 
 ```json 
 {
+    "room": "<room>",
     "users": [ 
         "0", 
         "1" 
@@ -143,6 +144,7 @@ Response format (success):
 
 ```json 
 {
+    "room": "<room>",
     "users": [ 
         "1" 
     ]
@@ -199,7 +201,12 @@ Response format (success):
 ```json 
 {
     "id": "0", 
-    "message": "Hello, World!"
+    "message": "Hello, World!",
+    "room": "<room>",
+    "users": [
+        "0",
+        "1"
+    ]
 }
 ```
 
@@ -236,6 +243,7 @@ Response format (success):
 
 ```json 
 {
+    "room": "<room>",
     "users": [ 
         "0",
         "1"

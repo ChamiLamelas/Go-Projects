@@ -6,9 +6,12 @@ This is a simple chat server where users can join and message in rooms or messag
 
 TODO: add high level implementation
 
-It offers the following features: 
+It offers the two primary features: 
 
-TODO: add feature list
+1. Clients can create or join chat rooms where they can broadcast messages to other clients connected to the room.
+2. Clients can private message other clients connected to the chat server in any room.
+
+There are additional features for viewing rooms, participants, and user movement notifications.
 
 See [DESIGN.md](./DESIGN.md) for my full design.
 
@@ -16,15 +19,37 @@ See [DESIGN.md](./DESIGN.md) for my full design.
 
 ### Compilation Method 
 
-TODO: add compilation instructions 
+To build the client executable: 
+
+1. Go into `src/`.
+2. Run `go build -o ./client.exe ./client`. 
+3. Run `./client`.
+
+To build the server executable: 
+
+1. Go into `src/`.
+2. Run `go build -o ./server.exe ./server`.
+3. Run `./server`.
+4. Run `Ctrl + C` to stop the server.
 
 ### Direct Execution 
 
-TODO: add direction execution instructions
+To run the client: 
+
+1. Go into `src/`.
+2. Run `go run ./client`.
+
+To run the server: 
+
+1. Go into `src/`.
+2. Run `go run ./server`.
+3. Run `Ctrl + C` to stop the server. 
 
     > Note you will see `exit status 0xc000013a` (Windows) or `^Csignal: interrupt` (Linux) which is expected. This just means the program was aborted by a manual `Ctrl + C`.
 
 ## Example Interaction
+
+TODO: add example user inputs to clients
 
 ## Platforms
 
