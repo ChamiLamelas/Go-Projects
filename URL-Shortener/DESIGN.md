@@ -24,7 +24,7 @@ Build a URL shortening service similar to Bit.ly. This will involve creating a w
 
 ### HTTP Server Behavior
 
-### Shorten
+#### Shorten
 
 User can request a URL to be shortened to an alias. There are two modes, automatic and custom aliasing.
 
@@ -38,14 +38,14 @@ Custom Aliasing:
     1. URL has already been shortened, and as a result, existing alias is provided.
     2. Alias is already in use for another URL. No mapping is created.
 
-### Expand Alias 
+#### Expand Alias 
 
 User can expand an alias into the correct URL. 
 
 - Success: an alias can be converted into a URL.
 - Failure: an alias cannot be converted into a URL (no mapping exists).
 
-### Analytics
+#### Analytics
 
 User can request usage analytics of an alias.
 
