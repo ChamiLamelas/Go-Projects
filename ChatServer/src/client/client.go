@@ -7,6 +7,6 @@ import (
 
 func main() {
 	fmt.Println("Client")
-	resp := shared.ConnectResponse{Id: "0"}
+	resp := shared.SystemMessage{UserId: "0"}
 	fmt.Println(resp)
 }

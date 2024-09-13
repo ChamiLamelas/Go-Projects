@@ -38,8 +38,9 @@ Build a simple chat server using Go's networking libraries. Clients can connect 
 ### Components 
 
 - Client-server model: clients (running identical program) send all information to a central server where they are then forwarded to other clients 
-- Communication will be done over TCP using HTTP and JSON. 
+- Communication will be done by sending JSON messages over WebSockets. WebSockets are used in place of HTTP because HTTP is made to do single request-response interactions and is usually stateless. WebSockets is designed for bidirectional communication where client doesn't have to initiate. This is useful in chats where a client can be sent a message without sending anything themself.
 - User IDs are assigned sequentially (first user gets ID 0, second gets 1, etc.).
+- goroutines and locks are used throughout to implement concurrent processing of operations for users and rooms.
 
 ## Design 
 
@@ -82,13 +83,15 @@ Build a simple chat server using Go's networking libraries. Clients can connect 
 
 ### Communication API 
 
-For specific failure cases see the failures listed in the [previous section](#server-behavior).
+For specific failure cases see the failures listed in the [previous section](#server-behavior). 
+
+Instead of having an RESTful API over HTTP, we don't have clients communicating with different endpoints. Instead, they connect to a single endpoint and a WebSocket is established where messages are sent back and forth between clients and server. 
+
+With this being said, by "messages" we do not mean messages between user but overall system messages that indicate the type of action a client is performing or what the server is communicating to the client. 
 
 #### Connecting to Server 
 
-Route: `/chatserver/connect`
-
-Method: `POST`
+In this case the client makes a connection to the following endpoint: `/chatserver/connect`. 
 
 Request format: (empty) 
 
@@ -96,164 +99,193 @@ Response format:
 
 ```json 
 {
-    "id": "0"
+    "action": "connection",
+    "user_id": "0"
 }
 ```
 
 #### Joining a Room
 
-Route: `/chatserver/join/<room>`
-
-Method: `POST`
-
-Request format: 
+To join a room, a message is sent with the following format: 
 
 ```json 
 {
-    "id": "0"
+    "action": "join",
+    "room": "0"
 }
 ```
 
-Response format (success and failure): 
+To which the server will respond: 
 
 ```json 
 {
-    "room": "<room>",
-    "users": [ 
-        "0", 
-        "1" 
-    ]
+    "action": "join",
+    "room": "0"
 }
 ```
 
 #### Leaving a Room 
 
-Route: `/chatserver/leave/<room>`
-
-Method: `POST`
-
-Request format: 
+To leave a room, a message is sent with the following format: 
 
 ```json 
 {
-    "id": "0"
+    "action": "leave"
 }
 ```
 
-Response format (success): 
+To which the server will respond (in success case): 
 
 ```json 
 {
-    "room": "<room>",
-    "users": [ 
-        "1" 
-    ]
+    "action": "leave",
+    "room": "0"
 }
 ```
 
-In the case of failure, a bad request error is sent to the client.
+In failure case, the response will be: 
+
+```json
+{
+    "action": "error", 
+    "message": "user was not in a room"
+}
+```
 
 #### Private Message 
 
-Route: `/chatserver/message/direct`
-
-Method: `POST`
-
-Request format: 
+To send a private message, a system message is sent with the following format: 
 
 ```json 
 {
-    "sender_id": "0",
-    "receiver_id": "1",
-    "message": "Hello, World!" 
+    "action": "private_message",
+    "user_id": "1",
+    "message": "Hello!"
 }
 ```
 
-Response format (success): 
+To which the server will respond (in success case): 
 
 ```json 
 {
-    "sender_id": "0",
-    "receiver_id": "1",
-    "message": "Hello, World!"
+    "action": "private_message",
+    "user_id": "1",
+    "message": "Hello!"
 }
 ```
 
-In the case of failure, a bad request error is sent to the client.
+In failure case, the response will be: 
+
+```json
+{
+    "action": "error", 
+    "message": "user 1 is not on the server"
+}
+```
 
 #### Messaging a Room 
 
-Route: `/chatserver/message/room`
-
-Method: `POST`
-
-Request format: 
+To send a message to the room, a system message is sent with the following format: 
 
 ```json 
 {
-    "id": "0",
-    "message": "Hello, World!" 
+    "action": "room_message",
+    "message": "Hello!"
 }
 ```
 
-Response format (success): 
+To which the server will respond (in success case): 
 
 ```json 
 {
-    "id": "0", 
-    "message": "Hello, World!",
-    "room": "<room>",
-    "users": [
-        "0",
-        "1"
-    ]
+    "action": "room_message",
+    "room": "0",
+    "message": "Hello!"
 }
 ```
 
-In the case of failure, a bad request error is sent to the client.
+In failure case, the response will be: 
+
+```json
+{
+    "action": "error", 
+    "message": "user is not in a room"
+}
+```
 
 #### Seeing Rooms 
 
-Route: `/chatserver/rooms`
-
-Method: `GET`
-
-Request format: (empty)
-
-Response format (success): 
+To see all the rooms, a system message is sent with the following format: 
 
 ```json 
 {
-    "rooms": [ 
-        "room1",
-        "room2"
+    "action": "rooms"
+}
+```
+
+To which the server will respond: 
+
+```json 
+{
+    "action": "rooms",
+    "rooms": [
+        "0",
+        "1"
     ]
 }
 ```
 
 #### Seeing Room Participants 
 
-Route: `/chatserver/users/<room>`
-
-Method: `GET`
-
-Request format: (empty)
-
-Response format (success): 
+To see all the participants in a room, a system message is sent with the following format: 
 
 ```json 
 {
-    "room": "<room>",
-    "users": [ 
-        "0",
+    "action": "participants",
+    "room": "0"
+}
+```
+
+To which the server will respond (in the success case): 
+
+```json 
+{
+    "action": "participants",
+    "room": "0",
+    "participants": [
+        "0", 
         "1"
     ]
 }
 ```
 
-In the case of failure, a bad request error is sent to the client.
+In failure case, the response will be: 
+
+```json
+{
+    "action": "error", 
+    "message": "room 0 does not exist"
+}
+```
 
 ### Code 
+
+The combined system message formats allows us to condense them all into one system message with the following fields: 
+
+- `action` which is always present and is one of: 
+    - `"connection"`
+    - `"join"`
+    - `"leave"`
+    - `"error"`
+    - `"private_message"`
+    - `"room_message"`
+    - `"rooms"`
+    - `"participants"`
+- `user_id` which is optional and used to provide a connected user with their ID and for specifying the recipient of a private message.
+- `room` which is optional and used to join a room and to specify the joined or left room in a response.
+- `message` which is optional and used to provide user and error messages.
+- `rooms` which is optional and used to provide a list of rooms.
+- `participants` which is optional and used to provide a list of participants in a room.  
 
 - `client.go` : code for the client which will connect to the server, accept user input from the console to perform various outputs, and display interactions on the terminal.
 - `server.go` : maintains a set of client connections and implements the chatting behaviors such as managing rooms and forwarding/relaying messages. 
