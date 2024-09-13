@@ -287,6 +287,10 @@ The combined system message formats allows us to condense them all into one syst
 - `rooms` which is optional and used to provide a list of rooms.
 - `participants` which is optional and used to provide a list of participants in a room.  
 
+This allows one to nicely define a `struct` to represent messages and ease JSON encoding/decoding. 
+
+Source files: 
+
 - `client.go` : code for the client which will connect to the server, accept user input from the console to perform various outputs, and display interactions on the terminal.
 - `server.go` : maintains a set of client connections and implements the chatting behaviors such as managing rooms and forwarding/relaying messages. 
 - `api.go` : defines the API endpoints and API request/response types to match above JSON.
